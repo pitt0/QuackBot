@@ -1,0 +1,15 @@
+[Unit]
+Description=QuackBot
+After=network.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/quackbot
+ExecStart=/home/ec2-user/quackbot/.venv/bin/python -m quack
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/ec2-user/quackbot/.env
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
