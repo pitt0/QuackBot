@@ -32,4 +32,4 @@ FROM
     ON e.user_id = u.user_id
 
     INNER JOIN users AS pu
-    ON pr.creator_id = u.user_id;
+    ON pr.creator_id = pu.user_id;
