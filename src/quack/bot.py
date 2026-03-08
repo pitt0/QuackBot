@@ -55,7 +55,7 @@ async def balance_command_callback(update: telegram.Update, _) -> None:
     assert update.message is not None  # noqa: S101
     debts = get_debts()
     form = "\n\n".join(
-        f"{creditor} owes:" + "\n".join(f" • €{round(amount / 100, 2)} ➡️ {debtor}" for debtor, amount in debtors.items())
+        f"{creditor} owes:\n" + "\n".join(f" • €{round(amount / 100, 2)} ➡️ {debtor}" for debtor, amount in debtors.items())
         for creditor, debtors in debts.items()
     )
 

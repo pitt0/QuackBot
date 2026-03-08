@@ -7,7 +7,7 @@ def get_debts() -> dict[str, dict[str, int]]:
     history = fetch_history()
     balance = defaultdict(lambda: defaultdict(int))
 
-    final: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    debts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     # compute net balances
     for creditor_tag, *_, debtor_tag, debt_amount in history:
@@ -18,6 +18,6 @@ def get_debts() -> dict[str, dict[str, int]]:
     for creditor in balance:
         for debtor, amount in balance[creditor].items():
             if amount > 0:
-                final[creditor][debtor] = amount
+                debts[debtor][creditor] = amount
 
-    return final
+    return debts
