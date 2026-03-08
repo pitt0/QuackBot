@@ -15,9 +15,9 @@ def get_debts() -> dict[str, dict[str, int]]:
         balance[debtor_tag][creditor_tag] -= debt_amount
 
     # normalize
-    for debtor in balance:
-        for creditor, amount in balance[debtor].items():
+    for creditor in balance:
+        for debtor, amount in balance[creditor].items():
             if amount > 0:
-                final[debtor][creditor] = amount
+                final[creditor][debtor] = amount
 
     return final
