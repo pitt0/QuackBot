@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from quack.bot import balance_command_callback, buttons, pay_command_callback, price_listener
+from quack.bot import balance_command_callback, buttons, label_listener, pay_command_callback, price_listener
 from quack.storage.db import init_db
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     # app.add_handler(history_handler)
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, price_listener))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, label_listener))
 
     app.add_handler(CallbackQueryHandler(buttons))
 
