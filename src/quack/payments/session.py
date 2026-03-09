@@ -35,8 +35,11 @@ class PaymentSession:
         return [(u, 1 if u in self.payers else 0) for u in self.users]
 
     def add_prices(self, prices: list[float]) -> None:
-        # NOTE: store price in cents so that floating point math does not trouble us
-        self.steps.append({"users": tuple(self.payers), "prices": [int(p * 100) for p in prices]})
+        if len(self.payers) == 0:
+            return
+
+        # NOTE: store price in thousandths to ensure maximum accuracy without errors
+        self.steps.append({"users": tuple(self.payers), "prices": [int(p * 1000) for p in prices]})
 
     def set_label(self, label: str) -> None:
         self.label = label
@@ -45,6 +48,7 @@ class PaymentSession:
         self.steps.pop()
 
     def expenses(self) -> dict[str, int]:
+        """Get the total value of expenses in the current session in thousandths of euros integer precision."""
         totals: dict[str, int] = defaultdict(int)
 
         for step in self.steps:

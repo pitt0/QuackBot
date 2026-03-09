@@ -12,8 +12,8 @@ session_manager = SessionManager()
 
 
 def format_payment_message(expenses: dict[str, int], status: str = "Active") -> str:
-    total = round(sum(e for e in expenses.values()) / 100, 2)
-    users = "\n\n".join(f" • {u} — €{round(e / 100, 2)} ✅" for u, e in expenses.items())
+    total = round(sum(e for e in expenses.values()) / 1000, 2)
+    users = "\n\n".join(f" • {u} — €{round(e / 1000, 2)} ✅" for u, e in expenses.items())
     return f"""
 🛒 <b>Purchase Session:</b> {status}
 
@@ -55,7 +55,7 @@ async def balance_command_callback(update: telegram.Update, _) -> None:
     assert update.message is not None  # noqa: S101
     debts = get_debts()
     form = "\n\n".join(
-        f"{creditor} owes:\n" + "\n".join(f" • €{round(amount / 100, 2)} ➡️ {debtor}" for debtor, amount in debtors.items())
+        f"{creditor} owes:\n" + "\n".join(f" • €{round(amount / 1000, 2)} ➡️ {debtor}" for debtor, amount in debtors.items())
         for creditor, debtors in debts.items()
     )
 
