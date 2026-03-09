@@ -11,11 +11,11 @@ from quack.storage.payments import persist_purchase
 session_manager = SessionManager()
 
 
-def format_payment_message(expenses: dict[str, int], status: str = "Active") -> str:
+def format_payment_message(expenses: dict[str, int], label: str = "Active") -> str:
     total = round(sum(e for e in expenses.values()) / 1000, 2)
     users = "\n\n".join(f" • {u} — €{round(e / 1000, 2)} ✅" for u, e in expenses.items())
     return f"""
-🛒 <b>Purchase Session:</b> {status}
+🛒 <b>New Purchase:</b> {label}
 
 💰 <b>Total Spend:</b> €{total}
 
@@ -75,17 +75,24 @@ async def buttons(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> No
     if not session:
         return
 
+    if action == "label":
+        message = await ctx.bot.send_message(text="Send a message with the new label", chat_id=session.chat_id)
+        session.listen_label(message.id)
+        return
+
     if action == "toggle":
         user = rest[0]
         session.toggle_user(user)
 
-        await query.edit_message_reply_markup(reply_markup=build_keyboard(session.chat_id, session.p_users()))
+        await query.edit_message_reply_markup(
+            reply_markup=build_keyboard(session.chat_id, session.p_users(), first_phase=len(session.steps) == 0),
+        )
         return
 
     if action == "undo":
         session.undo()
         await ctx.bot.edit_message_text(
-            text=format_payment_message(session.expenses()),
+            text=format_payment_message(session.expenses(), label=session.label or "Active"),
             parse_mode="HTML",
             reply_markup=build_keyboard(session.chat_id, session.p_users(), first_phase=len(session.steps) == 0),
         )
@@ -93,7 +100,7 @@ async def buttons(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> No
 
     if action == "confirm":
         persist_purchase(session.requested_by, session.expenses(), session.label)
-        text = format_payment_message(session.expenses(), status="Done")
+        text = format_payment_message(session.expenses(), label=session.label or "Done")
 
     else:  # NOTE: action = "cancel"
         text = "Purchase Cancelled"
@@ -107,6 +114,24 @@ async def buttons(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> No
     )
     session_manager.delete(session_id)
     return
+
+
+async def label_listener(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.message
+    assert message is not None  # noqa: S101
+    assert message.text is not None  # noqa: S101
+
+    session = session_manager.get(str(message.chat_id))
+    if not session or not session.payers:
+        return
+
+    if message.from_user is None or message.from_user.name != session.requested_by:
+        return
+
+    session.set_label(message.text)
+
+    await ctx.bot.delete_message(chat_id=session.chat_id, message_id=message.id)
+    await ctx.bot.delete_message(chat_id=session.chat_id, message_id=session.get_listener_message())
 
 
 async def price_listener(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -130,7 +155,7 @@ async def price_listener(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE
     session.add_prices(prices)
 
     await ctx.bot.edit_message_text(
-        text=format_payment_message(session.expenses()),
+        text=format_payment_message(session.expenses(), session.label or "Active"),
         parse_mode="HTML",
         reply_markup=build_keyboard(session.chat_id, session.p_users()),
         chat_id=session.chat_id,

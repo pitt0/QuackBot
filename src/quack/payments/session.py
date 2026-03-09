@@ -20,6 +20,8 @@ class PaymentSession:
         self.users = users
 
         self.label: str | None = None
+        self._listening: bool = False
+        self._listener_message_id: int | None = None
 
         self.payers = set(users)
 
@@ -41,8 +43,21 @@ class PaymentSession:
         # NOTE: store price in thousandths to ensure maximum accuracy without errors
         self.steps.append({"users": tuple(self.payers), "prices": [int(p * 1000) for p in prices]})
 
+    def listen_label(self, message_id: int) -> None:
+        self._listening = True
+        self._listener_message_id = message_id
+
+    def get_listener_message(self) -> int:
+        m_id = self._listener_message_id
+        self._listener_message_id = None
+        if not isinstance(m_id, int):
+            raise TypeError
+        return m_id
+
     def set_label(self, label: str) -> None:
-        self.label = label
+        if self._listening:
+            self.label = label
+            self._listening = False
 
     def undo(self) -> None:
         self.steps.pop()
