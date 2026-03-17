@@ -6,7 +6,9 @@ from telegram.ext import ContextTypes
 from quack.payments.debts import get_debts
 from quack.payments.keyboard import build_keyboard
 from quack.payments.manager import SessionManager
+from quack.registration.services import persist_users_tags
 from quack.storage.payments import persist_purchase
+from quack.storage.registrations import check_registrations, persist_alias, register_users
 
 session_manager = SessionManager()
 
@@ -37,11 +39,20 @@ async def pay_command_callback(update: telegram.Update, context: ContextTypes.DE
     assert update.message is not None  # noqa: S101
     assert update.message.from_user is not None  # noqa: S101
 
-    if not context.args:
-        await update.message.reply_text("Usage: /purchase user1 user2")
+    users = set(context.args or []) or check_registrations(update.message.chat_id)
+    if not users:
+        await update.message.reply_text(
+            "Usage: /purchase user1 user2\n\nYou can use /register to automate users recognitions in this channel",
+        )
         return
 
-    users = set(context.args)
+    alias_miss = persist_users_tags(users)
+    if alias_miss is not None:
+        await update.message.reply_text(
+            f"There is no user with alias {alias_miss}\n\nYou can register an alias with /alias @<user tag> <user alias>",
+        )
+        return
+
     keyboard = build_keyboard(update.message.chat_id, [(u, 1) for u in users], first_phase=True)
     msg = await update.message.reply_text(
         format_payment_message(dict.fromkeys(users, 0)),
@@ -49,6 +60,32 @@ async def pay_command_callback(update: telegram.Update, context: ContextTypes.DE
         reply_markup=keyboard,
     )
     session_manager.create_session(update.message.chat_id, msg.id, update.message.from_user.name, users)
+
+
+async def registration_command_callback(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.message is not None  # noqa: S101
+
+    if not ctx.args:
+        await update.message.reply_text("Usage: /register @user1 @user2")
+        return
+
+    users = set(ctx.args)
+    registrations = register_users(update.message.chat_id, users)
+    users_txt = "\n".join(f" • {u}" for u in registrations)
+    await update.message.reply_text(f"👥 <h1>Users registered for this chat:<h1>\n\n{users_txt}")
+
+
+async def alias_command_callback(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.message is not None  # noqa: S101
+
+    if not ctx.args:
+        await update.message.reply_text("Usage: /alias @<user tag> <user alias>")
+        return
+
+    tag, *alias = ctx.args
+    persist_alias(tag, " ".join(alias))
+
+    await update.message.reply_text("Alias registration complete")
 
 
 async def balance_command_callback(update: telegram.Update, _) -> None:

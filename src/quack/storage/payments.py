@@ -3,15 +3,42 @@ from .db import connect
 
 def persist_purchase(creator: str, debts: dict[str, int], purchase_label: str | None) -> None:
     with connect() as connection:
-        connection.executemany("INSERT OR IGNORE INTO users (user_tag) VALUES (?);", [(u,) for u in debts])
         (purchase_id,) = connection.execute(
-            "INSERT INTO purchase_record (creator_id, purchase_label) VALUES ((SELECT user_id FROM users WHERE user_tag = ?), ?) RETURNING purchase_id;",
-            (creator, purchase_label),
+            """
+            INSERT INTO
+                purchase_record (creator_id, purchase_label)
+            VALUES
+                ((
+                    SELECT
+                        user_id
+                    FROM
+                        users
+                    WHERE
+                        user_tag = :req OR
+                        user_alias = :req
+                ), :p_label)
+            RETURNING
+                purchase_id;
+            """,
+            {"req": creator, "p_label": purchase_label},
         ).fetchone()
 
         connection.executemany(
-            "INSERT INTO expenses (purchase_id, user_id, amount) VALUES (?, (SELECT user_id FROM users WHERE user_tag = ?), ?);",
-            [(purchase_id, u, d) for u, d in debts.items()],
+            """
+            INSERT INTO
+                expenses (purchase_id, user_id, amount)
+            VALUES
+                (:p_id, (
+                    SELECT
+                        user_id
+                    FROM
+                        users
+                    WHERE
+                        user_tag = :u_ref OR
+                        user_alias = :u_ref
+                ), :exp);
+            """,
+            [{"p_id": purchase_id, "u_ref": u, "exp": d} for u, d in debts.items()],
         )
 
 
@@ -19,7 +46,7 @@ def fetch_history() -> list[tuple[str, str | None, str, str, int]]:
     with connect() as connection:
         query = """
         SELECT
-            pu.user_tag,
+            COALESCE(pu.user_alias, pu.user_tag),
             pr.purchase_label,
             pr.created_at,
             u.user_tag,
