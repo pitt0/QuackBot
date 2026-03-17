@@ -2,7 +2,10 @@ import sqlite3
 from pathlib import Path
 
 DB_PATH = Path("data/quack.db")
-SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+
+BASE = Path(__file__).parent
+SCHEMA_PATH = BASE / "schema.sql"
+MIGRATIONS_DIR = BASE / "migrations"
 
 
 def connect():
@@ -13,6 +16,27 @@ def connect():
 
 def init_db():
     conn = connect()
-    with open(SCHEMA_PATH) as f:
-        conn.executescript(f.read())
+    conn.executescript(SCHEMA_PATH.read_text())
+
+    for file in MIGRATIONS_DIR.glob("*.sql"):
+        version_id = file.name[:3]
+        (is_present,) = conn.execute(
+            """
+            SELECT EXISTS (
+                SELECT
+                    1
+                FROM
+                    schema_migrations
+                WHERE
+                    version_id = ?
+                );
+            """,
+            (int(version_id),),
+        ).fetchone()
+
+        if is_present:
+            continue
+
+        conn.executescript(file.read_text())
+
     conn.commit()
