@@ -130,6 +130,8 @@ async def buttons(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> No
         session.undo()
         await ctx.bot.edit_message_text(
             text=format_payment_message(session.expenses(), label=session.label or "Active"),
+            chat_id=session.chat_id,
+            message_id=session.message_id,
             parse_mode="HTML",
             reply_markup=build_keyboard(session.chat_id, session.p_users(), first_phase=len(session.steps) == 0),
         )
@@ -165,7 +167,16 @@ async def label_listener(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE
     if message.from_user is None or message.from_user.name != session.requested_by:
         return
 
-    session.set_label(message.text)
+    if session.is_listening():
+        session.set_label(message.text)
+
+    await ctx.bot.edit_message_text(
+        text=format_payment_message(session.expenses(), session.label or "Active"),
+        parse_mode="HTML",
+        reply_markup=build_keyboard(session.chat_id, session.p_users()),
+        chat_id=session.chat_id,
+        message_id=session.message_id,
+    )
 
     await ctx.bot.delete_message(chat_id=session.chat_id, message_id=message.id)
     await ctx.bot.delete_message(chat_id=session.chat_id, message_id=session.get_listener_message())
@@ -177,7 +188,7 @@ async def price_listener(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE
     assert message.text is not None  # noqa: S101
 
     session = session_manager.get(str(message.chat_id))
-    if not session or not session.payers:
+    if not session or not session.payers or session.is_listening():
         return
 
     if message.from_user is None or message.from_user.name != session.requested_by:

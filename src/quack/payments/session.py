@@ -47,6 +47,9 @@ class PaymentSession:
         self._listening = True
         self._listener_message_id = message_id
 
+    def is_listening(self) -> bool:
+        return self._listening
+
     def get_listener_message(self) -> int:
         m_id = self._listener_message_id
         self._listener_message_id = None
