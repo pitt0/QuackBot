@@ -3,29 +3,12 @@ import re
 import telegram
 from telegram.ext import ContextTypes
 
-from quack.payments.debts import get_debts
-from quack.payments.keyboard import build_keyboard
-from quack.payments.manager import SessionManager
-from quack.registration.services import persist_users_tags
+# from quack.payments.debts import get_debts
+# from quack.payments.keyboard import build_keyboard
+# from quack.payments.manager import SessionManager
+# from quack.registration.services import persist_users_tags
 from quack.storage.payments import persist_purchase
-from quack.storage.registrations import check_registrations, persist_alias, register_users
-
-session_manager = SessionManager()
-
-
-def format_payment_message(expenses: dict[str, int], label: str = "Active") -> str:
-    total = round(sum(e for e in expenses.values()) / 1000, 2)
-    users = "\n\n".join(f" • {u} — €{round(e / 1000, 2)} ✅" for u, e in expenses.items())
-    return f"""
-🛒 <b>New Purchase:</b> {label}
-
-💰 <b>Total Spend:</b> €{total}
-
-👥 <b>Participants</b>
-
-{users}
-
-    """
+from quack.storage.registrations import persist_alias
 
 
 async def start_callback(update: telegram.Update, _) -> None:
@@ -33,46 +16,6 @@ async def start_callback(update: telegram.Update, _) -> None:
         return
 
     await update.message.reply_text("🏠 Roommate Pay Bot\n\nCommands:\n/purchase user1 user2\n/balance\n/expenses")
-
-
-async def pay_command_callback(update: telegram.Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    assert update.message is not None  # noqa: S101
-    assert update.message.from_user is not None  # noqa: S101
-
-    users = set(context.args or []) or check_registrations(update.message.chat_id)
-    if not users:
-        await update.message.reply_text(
-            "Usage: /purchase user1 user2\n\nYou can use /register to automate users recognitions in this channel",
-        )
-        return
-
-    alias_miss = persist_users_tags(users)
-    if alias_miss is not None:
-        await update.message.reply_text(
-            f"There is no user with alias {alias_miss}\n\nYou can register an alias with /alias @<user tag> <user alias>",
-        )
-        return
-
-    keyboard = build_keyboard(update.message.chat_id, [(u, 1) for u in users], first_phase=True)
-    msg = await update.message.reply_text(
-        format_payment_message(dict.fromkeys(users, 0)),
-        parse_mode="HTML",
-        reply_markup=keyboard,
-    )
-    session_manager.create_session(update.message.chat_id, msg.id, update.message.from_user.name, users)
-
-
-async def registration_command_callback(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    assert update.message is not None  # noqa: S101
-
-    if not ctx.args:
-        await update.message.reply_text("Usage: /register @user1 @user2")
-        return
-
-    users = set(ctx.args)
-    registrations = register_users(update.message.chat_id, users)
-    users_txt = "\n".join(f" • {u}" for u in registrations)
-    await update.message.reply_text(f"👥 <h1>Users registered for this chat:<h1>\n\n{users_txt}")
 
 
 async def alias_command_callback(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -86,18 +29,6 @@ async def alias_command_callback(update: telegram.Update, ctx: ContextTypes.DEFA
     persist_alias(tag, " ".join(alias))
 
     await update.message.reply_text("Alias registration complete")
-
-
-async def balance_command_callback(update: telegram.Update, _) -> None:
-    assert update.message is not None  # noqa: S101
-    debts = get_debts()
-    form = "\n\n".join(
-        f"{creditor} owes:\n" + "\n".join(f" • €{round(amount / 1000, 2)} ➡️ {debtor}" for debtor, amount in debtors.items())
-        for creditor, debtors in debts.items()
-    )
-
-    balance_msg = f"⚖️ <b>Current Balances</b>\n\n{form}"
-    await update.message.reply_text(text=balance_msg, parse_mode="HTML")
 
 
 async def buttons(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
