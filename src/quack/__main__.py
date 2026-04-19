@@ -4,15 +4,9 @@ import os
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from quack.bot import (
-    alias_command_callback,
-    balance_command_callback,
-    buttons,
-    label_listener,
-    pay_command_callback,
-    price_listener,
-    registration_command_callback,
-)
+from quack.features.balance.commands import balance_command_callback
+from quack.features.payments.commands import answer_button, pay_command_callback, register_updates
+from quack.features.registrations.commands import alias_command_callback, registration_command_callback
 from quack.storage.db import init_db
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -33,11 +27,9 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("balance", balance_command_callback))
     app.add_handler(CommandHandler("register", registration_command_callback))
     app.add_handler(CommandHandler("alias", alias_command_callback))
-    # app.add_handler(history_handler)
 
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, price_listener))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, label_listener))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, register_updates))
 
-    app.add_handler(CallbackQueryHandler(buttons))
+    app.add_handler(CallbackQueryHandler(answer_button))
 
     app.run_polling()

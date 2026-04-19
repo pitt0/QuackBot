@@ -14,6 +14,8 @@ class PaymentInput(TypedDict):
 
 class PaymentSession:
     def __init__(self, chat_id: int, message_id: int, requested_by: str, users: Iterable[str]) -> None:
+        self.id = str(chat_id)
+
         self.chat_id = chat_id
         self.message_id = message_id
         self.requested_by = requested_by

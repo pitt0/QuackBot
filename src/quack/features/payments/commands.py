@@ -1,10 +1,17 @@
-import telegram
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from quack.core.registrations.repo import check_registrations
 
-from .keyboard import build_keyboard
+from .actions import ACTION_RESPONSES
+from .listeners import register_prices, set_label
 from .manager import SessionManager
-from .presenter import format_payment_message
+from .presenter import build_keyboard, format_payment_message
+
+if TYPE_CHECKING:
+    import telegram
+
 
 payments = SessionManager()
 
@@ -25,3 +32,32 @@ async def pay_command_callback(update: telegram.Update, _) -> None:
         reply_markup=keyboard,
     )
     payments.create_session(update.message.chat_id, msg.id, update.message.from_user.name, users)
+
+
+async def answer_button(update: telegram.Update, _) -> None:
+    query = update.callback_query
+    assert query is not None  # noqa: S101
+    await query.answer()
+
+    assert query.data is not None  # noqa: S101
+    action, session_id, *user = query.data.split(":")
+
+    session = payments.get(session_id)
+    if not session:
+        return
+
+    callback = ACTION_RESPONSES[action]
+    await callback(payments, session, query, user[0] if user else None)
+
+
+async def register_updates(update: telegram.Update, _) -> None:
+    assert update.message is not None  # noqa: S101
+
+    session = payments.get(str(update.message.chat_id))
+    if session is None:
+        return
+
+    if session.is_listening():
+        await set_label(session, update.message)
+    else:
+        await register_prices(session, update.message)

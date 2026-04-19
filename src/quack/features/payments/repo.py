@@ -1,4 +1,4 @@
-from .db import connect
+from quack.storage.db import connect
 
 
 def persist_purchase(creator: str, debts: dict[str, int], purchase_label: str | None) -> None:

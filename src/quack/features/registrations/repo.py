@@ -3,6 +3,19 @@ from collections.abc import Iterable
 from quack.storage.db import connect
 
 
+def persist_users(user_tags: list[str]) -> None:
+    with connect() as connection:
+        connection.executemany(
+            """
+            INSERT OR IGNORE INTO
+                users (user_tag)
+            VALUES
+                (?);
+            """,
+            ((tag,) for tag in user_tags),
+        )
+
+
 def register_users(group_id: int, user_tags: Iterable[str]) -> list[str]:
     with connect() as connection:
         connection.executemany(
@@ -30,3 +43,35 @@ def register_users(group_id: int, user_tags: Iterable[str]) -> list[str]:
         ).fetchall()
 
     return [r[0] for r in registrations]
+
+
+def check_alias_existence(user_alias: str) -> bool:
+    with connect() as connection:
+        (flag,) = connection.execute(
+            """
+            SELECT EXISTS (
+                SELECT
+                    1
+                FROM
+                    users
+                WHERE
+                    user_alias = ?;
+                );
+            """,
+            (user_alias,),
+        ).fetchone()
+
+    return flag
+
+
+def persist_alias(user_tag: str, user_alias: str) -> None:
+    with connect() as connection:
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO
+                users (user_tag, user_alias)
+            VALUES
+                (?, ?);
+            """,
+            (user_tag, user_alias),
+        )

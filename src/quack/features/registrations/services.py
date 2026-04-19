@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from quack.storage.registrations import check_alias_existence, persist_users
+from .repo import check_alias_existence, persist_users
 
 
 def persist_users_tags(users_tags: Iterable[str]) -> str | None:
