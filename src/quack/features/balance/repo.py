@@ -6,7 +6,7 @@ def fetch_history(group_id: int) -> list[tuple[str, str | None, str, str, int]]:
         query = """
         WITH group_members AS (
             SELECT
-                user_id,
+                usr.user_id,
                 COALESCE(user_alias, user_tag) AS user_handle,
                 user_tag
             FROM
