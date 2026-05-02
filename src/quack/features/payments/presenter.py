@@ -26,10 +26,11 @@ def build_keyboard(chat_id: int, users: list[tuple[str, int]], *, first_phase: b
 
         buttons[1].append(InlineKeyboardButton(f"{mark} {user}", callback_data=f"toggle:{chat_id}:{user}"))
 
-    buttons[2] = [InlineKeyboardButton("✅ Confirm & Split", callback_data=f"confirm:{chat_id}")]
     if first_phase:
         buttons[2].append(InlineKeyboardButton("❌ Cancel Session", callback_data=f"cancel:{chat_id}"))
     else:
         buttons[2].append(InlineKeyboardButton("↩️ Undo", callback_data=f"undo:{chat_id}"))
+
+    buttons[2] = [InlineKeyboardButton("✅ Confirm & Split", callback_data=f"confirm:{chat_id}")]
 
     return InlineKeyboardMarkup(buttons)
