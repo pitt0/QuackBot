@@ -11,12 +11,13 @@ from .presenter import build_keyboard, format_payment_message
 
 if TYPE_CHECKING:
     import telegram
+    from telegram.ext import ContextTypes
 
 
 payments = SessionManager()
 
 
-async def pay_command_callback(update: telegram.Update, _) -> None:
+async def pay_command_callback(update: telegram.Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     assert update.message is not None  # noqa: S101
     assert update.message.from_user is not None  # noqa: S101
 
@@ -25,13 +26,15 @@ async def pay_command_callback(update: telegram.Update, _) -> None:
         await update.message.reply_text("You can use /register @user1 @user2 to register those users for this chat")
         return
 
+    label = ctx.args[0] if ctx.args else ""
+
     keyboard = build_keyboard(update.message.chat_id, [(u, 1) for u in users], first_phase=True)
     msg = await update.message.reply_text(
         format_payment_message(dict.fromkeys(users, 0)),
         parse_mode="HTML",
         reply_markup=keyboard,
     )
-    payments.create_session(update.message.chat_id, msg.id, update.message.from_user.name, users)
+    payments.create_session(update.message.chat_id, msg.id, update.message.from_user.name, users, label)
 
 
 async def answer_button(update: telegram.Update, _) -> None:

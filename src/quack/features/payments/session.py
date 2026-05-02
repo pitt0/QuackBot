@@ -13,7 +13,7 @@ class PaymentInput(TypedDict):
 
 
 class PaymentSession:
-    def __init__(self, chat_id: int, message_id: int, requested_by: str, users: Iterable[str]) -> None:
+    def __init__(self, chat_id: int, message_id: int, requested_by: str, users: Iterable[str], label: str | None = None) -> None:
         self.id = str(chat_id)
 
         self.chat_id = chat_id
@@ -21,7 +21,7 @@ class PaymentSession:
         self.requested_by = requested_by
         self.users = users
 
-        self.label: str | None = None
+        self.label: str | None = label
         self._listening: bool = False
         self._listener_message_id: int | None = None
 

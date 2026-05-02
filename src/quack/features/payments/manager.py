@@ -12,8 +12,15 @@ class SessionManager:
     def __init__(self):
         self._sessions: dict[str, PaymentSession] = {}
 
-    def create_session(self, chat_id: int, message_id: int, requested_by: str, users: Iterable[str]) -> PaymentSession:
-        session = PaymentSession(chat_id, message_id, requested_by, users)
+    def create_session(
+        self,
+        chat_id: int,
+        message_id: int,
+        requested_by: str,
+        users: Iterable[str],
+        label: str | None = None,
+    ) -> PaymentSession:
+        session = PaymentSession(chat_id, message_id, requested_by, users, label)
         self._sessions[str(chat_id)] = session
         return session
 

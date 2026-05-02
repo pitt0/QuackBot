@@ -26,8 +26,8 @@ async def set_label(session: PaymentSession, message: Message) -> None:
         message_id=session.message_id,
     )
 
-    await bot.delete_message(chat_id=session.chat_id, message_id=message.id)
-    await bot.delete_message(chat_id=session.chat_id, message_id=session.get_listener_message())
+    # await bot.delete_message(chat_id=session.chat_id, message_id=message.id)
+    # await bot.delete_message(chat_id=session.chat_id, message_id=session.get_listener_message())
 
 
 async def register_prices(session: PaymentSession, message: Message) -> None:
