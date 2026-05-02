@@ -18,10 +18,10 @@ def fetch_history(group_id: int) -> list[tuple[str, str | None, str, str, int]]:
         )
 
         SELECT
-            gme.user_handle,
+            gmp.user_handle,
             pr.purchase_label,
             pr.created_at,
-            gme.user_tag,
+            gme.user_handle,
             exp.amount
 
         FROM
