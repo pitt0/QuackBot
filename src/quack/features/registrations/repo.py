@@ -20,6 +20,15 @@ def register_users(group_id: int, user_tags: Iterable[str]) -> list[str]:
     with connect() as connection:
         connection.executemany(
             """
+            INSERT OR IGNORE INTO
+                users (user_tag)
+            VALUES
+                (?);
+            """,
+            [(tag,) for tag in user_tags],
+        )
+        connection.executemany(
+            """
             INSERT INTO
                 group_registrations (group_id, user_id)
             VALUES
