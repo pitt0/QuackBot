@@ -1,29 +1,42 @@
 from collections import defaultdict
 
-from .repo import fetch_history
+from .repo import fetch_balance
 from .types import TBalance
 
 
 def get_balance(group_id: int) -> TBalance:
-    history = fetch_history(group_id)
-    balance = defaultdict(lambda: defaultdict(int))
+    balance = fetch_balance(group_id)
+    creditors = []
+    debtors = []
 
-    debts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for user, bal in balance:
+        if bal > 0:
+            creditors.append([user, bal])
+        elif bal < 0:
+            debtors.append([user, -bal])
 
-    # compute net balances
-    for creditor_tag, *_, debtor_tag, debt_amount in history:
-        balance[creditor_tag][debtor_tag] += debt_amount
-        balance[debtor_tag][creditor_tag] -= debt_amount
+    # sort biggest first (your "lesser side" logic emerges from this)
+    creditors.sort(key=lambda x: -x[1])
+    debtors.sort(key=lambda x: -x[1])
 
-    # normalize
-    for creditor in balance:
-        for debtor, amount in balance[creditor].items():
-            if amount > 0:
-                debts[debtor][creditor] = amount
+    i = j = 0
+    result: TBalance = defaultdict(lambda: defaultdict(int))
 
-    # resolve circular balance
-    capacity = min(c for debs in balance.values() for c in debs.values())
-    if capacity > 0:
-        pass
+    while i < len(creditors) and j < len(debtors):
+        c_user, c_amt = creditors[i]
+        d_user, d_amt = debtors[j]
 
-    return debts
+        # settle the smaller side
+        amount = min(c_amt, d_amt)
+
+        result[d_user][c_user] += amount
+
+        creditors[i][1] -= amount
+        debtors[j][1] -= amount
+
+        if creditors[i][1] == 0:
+            i += 1
+        if debtors[j][1] == 0:
+            j += 1
+
+    return result
